@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ty/
+
+# Environments and local config
+.env
+.envrc
+.venv/
+venv/
+env/
+
+# Build outputs
+build/
+dist/
+site/
+
+# Runtime and experiment outputs
+results/
+workspace/
+.workspaces/
+.works/
+.benchmarks/
+orchestration_runs/
+orchestration_case_index.sqlite3
+backend/state/
+backend/config/seen_version.json
+tmp/
+
+# Logs and local artifacts
+*.log
+*.sqlite
+*.sqlite3
+*.db
+_LAST
+

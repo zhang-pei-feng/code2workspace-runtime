@@ -1,0 +1,4 @@
+interface:
+  display_name: "广域呼吸道病原监测"
+  short_description: "从整理后的 50+ 来源表中筛选并抓取呼吸道病原官方网页、报告或 PDF"
+  default_prompt: "使用 $respiratory-disease-wide-monitor 筛选整理后的呼吸道病原来源表，并抓取相关 COVID/新冠、流感、RSV、变异株、疾控周报、官方网页或 PDF；查询/抓取数据时不要编辑 fetch_sources.py、get_latest_monitoring_data.py 或 skill 文件，直接运行现有脚本；source catalog/source type/结构化 XLS、CSV、JSON 数据源目录问题改用 $epietl-api。"

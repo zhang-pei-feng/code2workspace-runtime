@@ -1,0 +1,4 @@
+interface:
+  display_name: "呼吸道疾病数据抓取器"
+  short_description: "获取最新的呼吸道疾病数据和新冠疫情趋势"
+  default_prompt: "使用 $respiratory-disease-data-fetcher 获取 WHO、美国 CDC、中国疾控等少量固定官方源；若相关信息可能在整理后的来源表中，改用 $respiratory-disease-wide-monitor。"

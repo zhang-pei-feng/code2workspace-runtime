@@ -1,0 +1,31 @@
+interface:
+  display_name: "病毒变异数据库查询"
+  short_description: "查询本机 virus_variation 风险库，以及数据治理智能体 covid_data 谱系/突变/导入库"
+  default_prompt: >-
+    Use $virus-variation-query for local virus variation database questions, including Chinese prompts such as
+    `查数据库`, `查库`, `数据库里`, `virus_variation`, `本地变异库`, `突变风险库`, `位点风险`, `RBD 区域`,
+    `S蛋白`, `HA`, `NA`, `氨基酸突变`, `抗体逃逸`, `ACE2`, `受体结合`, `毒株`, `谱系`, `lineage`,
+    `strain`, and examples like `PQ.2 毒株在 RBD 区域上有哪些氨基酸突变`. This skill now has two
+    local MySQL evidence layers: (1) `virus_variation`, a site-level risk database for SARS-CoV-2,
+    influenza, and mpox; (2) `covid_data`, the data_governance_agent local database containing
+    `ncov_lineage_mutations`, `ncov_lineage_catalog`, `ncov_source_records`, import runs, and EpiETL
+    report/event/channel tables. Before writing SQL, read
+    `skills/capabilities/virus-variation-query/SKILL.md` and use only the documented
+    read-only connection patterns. For `virus_variation`, use
+    `mysql -u agent_virus -p'VirusAgent@2026!' virus_variation -e "SQL"`. For `covid_data`, prefer
+    the config-driven data_governance_agent entry:
+    `cd "$DATA_GOVERNANCE_AGENT_ROOT" && PYTHONPATH=src .venv/bin/python`
+    with `from data_governance_mvp.local_db import execute_sql`, because it reads the MySQL password
+    from the agent config; do not leak that password. Never invent placeholder credentials such as
+    your_user/your_password, never use root, and never invent schema fields. Confirm schema with
+    SHOW TABLES or DESCRIBE if uncertain. The `virus_variation.ncov_amino_acid_risk` table is a
+    site-level risk table and does not contain lineage/strain/region/mutation columns. If the user
+    asks for actual lineage-defining mutations, first query `covid_data.ncov_lineage_mutations`;
+    for Spike/RBD use `(gene IN ('S','SPIKE') OR LOWER(raw_site) LIKE 's:%' OR LOWER(raw_site)
+    LIKE 'spike:%')` and RBD positions 319-541. Then query `virus_variation.ncov_amino_acid_risk`
+    for ACE2/antibody risk scores on the matched S positions. If `covid_data` has no matching
+    lineage rows, clearly state that local lineage coverage limitation and use appropriate external
+    lineage/literature/monitoring sources when needed. For generic variant/vaccine/immune-barrier/
+    clinical-trial/risk-assessment prompts, include this skill as the local site-level risk and
+    lineage-mutation evidence layer alongside academic_search for papers/trials and
+    respiratory-disease-data-fetcher or official web monitoring for recent surveillance context.

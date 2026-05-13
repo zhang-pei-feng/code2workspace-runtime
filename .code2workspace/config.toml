@@ -1,0 +1,4 @@
+# Model configuration has moved to:
+#   backend/config/agent_models.json
+#
+# The main agent no longer loads model settings from this file or from .env.

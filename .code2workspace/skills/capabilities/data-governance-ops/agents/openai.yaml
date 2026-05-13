@@ -1,0 +1,4 @@
+interface:
+  display_name: "Data Governance Ops"
+  short_description: "数据源说明、snapshot 刷新/查询/对比、质量排查、本地库可选查询"
+  default_prompt: "使用 $data-governance-ops 处理数据治理类任务。统一走本地 governance_ops.py helper，不再调用旧 data_governance_agent ACP runtime。优先做 source brief、snapshot refresh/query/compare、quality triage；只有本地 DB 配置存在时才做 DB 查询。"

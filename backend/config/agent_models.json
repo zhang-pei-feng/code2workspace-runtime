@@ -1,0 +1,48 @@
+{
+  "default": "openai:gpt-5.4",
+  "providers": {
+    "openai": {
+      "enabled": true,
+      "models": [
+        "gpt-5.2",
+        "gpt-5.4",
+        "gpt-5.5"
+      ],
+      "class_path": "code2workspace_cli.openai_alias:RelayChatOpenAI",
+      "base_url_env": "OPENAI_BASE_URL",
+      "api_key_env": "OPENAI_API_KEY",
+      "requires_api_key": true,
+      "params": {
+        "use_responses_api": false,
+        "reasoning_effort": "medium",
+        "temperature": 0
+      },
+      "profile": {
+        "max_input_tokens": 1000000,
+        "tool_calling": true
+      }
+    },
+    "anthropic": {
+      "enabled": true,
+      "models": [
+        "claude-sonnet-4-5",
+        "claude-sonnet-4-6"
+      ],
+      "base_url_env": "ANTHROPIC_BASE_URL",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "requires_api_key": true,
+      "params": {
+        "temperature": 0
+      },
+      "profile": {
+        "max_input_tokens": 200000
+      }
+    }
+  },
+  "warnings": {
+    "suppress": [
+      "tavily"
+    ]
+  },
+  "recent": "openai:gpt-5.4"
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "EpiETL API"
+  short_description: "查询疫情智能报告、风险事件和数据源目录"
+  default_prompt: "使用 $epietl-api 查询 EpiETL 报告、风险事件、source channels、source type/source URL，以及 WHO/CN/HK/TW COVID/流感结构化 XLS/CSV/JSON 数据源目录。"

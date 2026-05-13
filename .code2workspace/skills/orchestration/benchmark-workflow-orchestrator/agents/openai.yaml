@@ -1,0 +1,4 @@
+interface:
+  display_name: "Benchmark Workflow Orchestrator"
+  short_description: "本地 workflow benchmark、结果汇总与下载"
+  default_prompt: "使用 $benchmark-workflow-orchestrator 处理本地 workflow benchmark、多个 workflow 复用和 benchmark 汇总。优先检查仓库里的本地结果目录、输入文件和确定性 helper 脚本，禁止假设远端工作流服务可用，也不要再调用旧 superagent 目录里的 ACP/DeepAgents agent。"
