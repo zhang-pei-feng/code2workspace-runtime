@@ -1778,7 +1778,7 @@ def detect_provider(model_name: str) -> str | None:
 
 
 def _get_default_model_spec() -> str:
-    """Get default model specification from the project-local config.
+    """Get default model specification from environment or project-local config.
 
     Returns:
         Model specification in provider:model format.
@@ -1796,8 +1796,8 @@ def _get_default_model_spec() -> str:
         return config.recent_model
 
     msg = (
-        "No default model configured. Edit backend/config/agent_models.json "
-        "and set the `default` field, for example `openai:gpt-5.4`."
+        "No default model configured. Set CODE2WORKSPACE_MODEL in .env "
+        "to a provider:model value, for example `openai:gpt-5.4`."
     )
     raise ModelConfigError(msg)
 

@@ -523,6 +523,35 @@ default = "claude-sonnet-4-5"
 
         assert config.default_model == "claude-sonnet-4-5"
 
+    def test_env_default_model_overrides_default_config(self, tmp_path):
+        """CODE2WORKSPACE_MODEL is the portable default model entrypoint."""
+        config_path = tmp_path / "config.toml"
+        config_path.write_text("""
+[models]
+default = "openai:gpt-5.2"
+""")
+
+        with (
+            patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
+            patch.dict("os.environ", {"CODE2WORKSPACE_MODEL": "openai:gpt-5.4"}),
+        ):
+            config = ModelConfig.load()
+
+        assert config.default_model == "openai:gpt-5.4"
+
+    def test_explicit_config_path_ignores_default_model_env(self, tmp_path):
+        """Ad-hoc config reads should not be polluted by the process .env."""
+        config_path = tmp_path / "config.toml"
+        config_path.write_text("""
+[models]
+default = "openai:gpt-5.2"
+""")
+
+        with patch.dict("os.environ", {"CODE2WORKSPACE_MODEL": "openai:gpt-5.4"}):
+            config = ModelConfig.load(config_path)
+
+        assert config.default_model == "openai:gpt-5.2"
+
     def test_loads_providers(self, tmp_path):
         """Loads provider configurations."""
         config_path = tmp_path / "config.toml"
@@ -937,7 +966,13 @@ class TestModelPersistenceBetweenSessions:
             patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
             patch.dict(
                 "os.environ",
-                {"ANTHROPIC_API_KEY": "test-key"},
+                {
+                    "ANTHROPIC_API_KEY": "test-key",
+                    "CODE2WORKSPACE_MODEL": "",
+                    "CODE2WORKSPACE_DEFAULT_MODEL": "",
+                    "CODE2WORKSPACE_CLI_MODEL": "",
+                    "CODE2WORKSPACE_CLI_DEFAULT_MODEL": "",
+                },
                 clear=False,
             ),
         ):
@@ -949,11 +984,10 @@ class TestModelPersistenceBetweenSessions:
                 "The saved model selection is not being loaded from config."
             )
 
-    def test_config_file_default_takes_priority_over_env_detection(self, tmp_path):
-        """Config file default model should take priority over env var detection.
+    def test_model_env_takes_priority_over_config_file_default(self, tmp_path):
+        """The env default model should be able to replace config defaults.
 
-        When both a config file default AND API keys are present,
-        the config file's default model should be used.
+        This keeps model name, URL, and key together in the deploy-time .env.
         """
         from code2workspace_cli.config import _get_default_model_spec
         from code2workspace_cli.model_config import save_default_model
@@ -963,21 +997,24 @@ class TestModelPersistenceBetweenSessions:
         # Save an OpenAI model as default
         save_default_model("openai:gpt-5.2", config_path)
 
-        # Even with Anthropic key set, should use saved OpenAI default
+        # Even with a saved default, the env model is the deploy-time entry.
         with (
             patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
             patch.dict(
                 "os.environ",
-                {"ANTHROPIC_API_KEY": "test-key", "OPENAI_API_KEY": "test-key"},
+                {
+                    "CODE2WORKSPACE_MODEL": "openai:gpt-5.4",
+                    "ANTHROPIC_API_KEY": "test-key",
+                    "OPENAI_API_KEY": "test-key",
+                },
                 clear=False,
             ),
         ):
             result = _get_default_model_spec()
 
-            # Should use the saved config, not auto-detect from env vars
-            assert result == "openai:gpt-5.2", (
-                f"Expected config default 'openai:gpt-5.2' but got '{result}'. "
-                "Config file default should take priority over env var detection."
+            assert result == "openai:gpt-5.4", (
+                f"Expected env default 'openai:gpt-5.4' but got '{result}'. "
+                "CODE2WORKSPACE_MODEL should take priority over config defaults."
             )
 
 
@@ -2508,7 +2545,7 @@ recent = "anthropic:claude-sonnet-4-5"
 
 
 class TestModelPrecedenceOrder:
-    """Tests for model selection precedence: default > recent > env."""
+    """Tests for model selection precedence: env default > config default > recent."""
 
     def test_default_takes_priority_over_recent(self, tmp_path):
         """[models].default takes priority over [models].recent."""
@@ -2525,7 +2562,13 @@ recent = "anthropic:claude-sonnet-4-5"
             patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
             patch.dict(
                 "os.environ",
-                {"ANTHROPIC_API_KEY": "test-key"},
+                {
+                    "ANTHROPIC_API_KEY": "test-key",
+                    "CODE2WORKSPACE_MODEL": "",
+                    "CODE2WORKSPACE_DEFAULT_MODEL": "",
+                    "CODE2WORKSPACE_CLI_MODEL": "",
+                    "CODE2WORKSPACE_CLI_DEFAULT_MODEL": "",
+                },
                 clear=False,
             ),
         ):
@@ -2534,7 +2577,7 @@ recent = "anthropic:claude-sonnet-4-5"
         assert result == "ollama:qwen3:4b"
 
     def test_recent_takes_priority_over_env(self, tmp_path):
-        """[models].recent takes priority over env var auto-detection."""
+        """[models].recent is used when no env/default model is configured."""
         from code2workspace_cli.config import _get_default_model_spec
 
         config_path = tmp_path / "config.toml"
@@ -2547,7 +2590,13 @@ recent = "openai:gpt-5.2"
             patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
             patch.dict(
                 "os.environ",
-                {"ANTHROPIC_API_KEY": "test-key"},
+                {
+                    "ANTHROPIC_API_KEY": "test-key",
+                    "CODE2WORKSPACE_MODEL": "",
+                    "CODE2WORKSPACE_DEFAULT_MODEL": "",
+                    "CODE2WORKSPACE_CLI_MODEL": "",
+                    "CODE2WORKSPACE_CLI_DEFAULT_MODEL": "",
+                },
                 clear=False,
             ),
         ):
@@ -2555,8 +2604,8 @@ recent = "openai:gpt-5.2"
 
         assert result == "openai:gpt-5.2"
 
-    def test_missing_config_default_does_not_fall_back_to_env(self, tmp_path):
-        """Portable config requires one explicit default entrypoint."""
+    def test_env_model_is_used_when_config_has_no_default_or_recent(self, tmp_path):
+        """Portable config can put the model name in .env."""
         from code2workspace_cli.config import _get_default_model_spec
 
         config_path = tmp_path / "config.toml"
@@ -2566,11 +2615,36 @@ recent = "openai:gpt-5.2"
             patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
             patch.dict(
                 "os.environ",
-                {"ANTHROPIC_API_KEY": "test-key"},
+                {"CODE2WORKSPACE_MODEL": "openai:gpt-5.4"},
                 clear=False,
             ),
         ):
-            with pytest.raises(ModelConfigError, match="agent_models.json"):
+            result = _get_default_model_spec()
+
+        assert result == "openai:gpt-5.4"
+
+    def test_missing_config_default_and_env_raises(self, tmp_path):
+        """Portable config requires one explicit model entrypoint."""
+        from code2workspace_cli.config import _get_default_model_spec
+
+        config_path = tmp_path / "config.toml"
+        config_path.write_text("")
+
+        with (
+            patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
+            patch.dict(
+                "os.environ",
+                {
+                    "ANTHROPIC_API_KEY": "test-key",
+                    "CODE2WORKSPACE_MODEL": "",
+                    "CODE2WORKSPACE_DEFAULT_MODEL": "",
+                    "CODE2WORKSPACE_CLI_MODEL": "",
+                    "CODE2WORKSPACE_CLI_DEFAULT_MODEL": "",
+                },
+                clear=False,
+            ),
+        ):
+            with pytest.raises(ModelConfigError, match="CODE2WORKSPACE_MODEL"):
                 _get_default_model_spec()
 
 

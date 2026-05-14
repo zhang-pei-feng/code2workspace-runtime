@@ -446,6 +446,7 @@ class TestCreateModelProfileExtraction:
 
     @pytest.fixture(autouse=True)
     def _bypass_credential_check(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        clear_caches()
         monkeypatch.setattr(
             "code2workspace_cli.model_config.has_provider_credentials", lambda _: True
         )
@@ -1447,6 +1448,59 @@ num_ctx = 4000
 
         assert kwargs["temperature"] == pytest.approx(0.5)
         assert kwargs["num_ctx"] == 4000
+
+    @patch("langchain.chat_models.init_chat_model")
+    def test_env_model_uses_matching_provider_and_model_params(
+        self, mock_init_chat_model: Mock, tmp_path: Path
+    ) -> None:
+        """CODE2WORKSPACE_MODEL selects provider params plus matching model overrides."""
+        config_path = tmp_path / "agent_models.json"
+        config_path.write_text(
+            """
+{
+  "providers": {
+    "openai": {
+      "models": ["gpt-5.4", "gpt-5.5"],
+      "api_key_env": "OPENAI_API_KEY",
+      "params": {
+        "temperature": 0,
+        "reasoning_effort": "medium",
+        "gpt-5.5": {
+          "reasoning_effort": "high"
+        }
+      }
+    }
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        mock_model = Mock()
+        mock_model.profile = None
+        mock_init_chat_model.return_value = mock_model
+
+        with (
+            patch.object(model_config, "DEFAULT_CONFIG_PATH", config_path),
+            patch.dict(
+                "os.environ",
+                {
+                    "CODE2WORKSPACE_MODEL": "openai:gpt-5.5",
+                    "OPENAI_API_KEY": "test-key",
+                },
+                clear=True,
+            ),
+        ):
+            result = create_model()
+
+        assert result.provider == "openai"
+        assert result.model_name == "gpt-5.5"
+        mock_init_chat_model.assert_called_once_with(
+            "gpt-5.5",
+            model_provider="openai",
+            api_key="test-key",
+            temperature=0,
+            reasoning_effort="high",
+        )
 
     def test_model_name_none_uses_provider_params(self, tmp_path: Path) -> None:
         """model_name=None returns provider params without per-model merge."""

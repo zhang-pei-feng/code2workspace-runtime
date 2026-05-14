@@ -28,6 +28,14 @@ logger = logging.getLogger(__name__)
 
 _ENV_PREFIX = "CODE2WORKSPACE_CLI_"
 
+DEFAULT_MODEL_ENV_VARS: tuple[str, ...] = (
+    "CODE2WORKSPACE_MODEL",
+    "CODE2WORKSPACE_DEFAULT_MODEL",
+    "CODE2WORKSPACE_CLI_MODEL",
+    "CODE2WORKSPACE_CLI_DEFAULT_MODEL",
+)
+"""Environment variables that may hold the default `provider:model` spec."""
+
 
 def resolve_env_var(name: str) -> str | None:
     """Look up an env var with `CODE2WORKSPACE_CLI_` prefix override.
@@ -67,6 +75,15 @@ def resolve_env_var(name: str) -> str | None:
                 logger.debug("Resolved %s from %s", name, prefixed)
             return val or None
     return os.environ.get(name) or None
+
+
+def resolve_default_model_env() -> str | None:
+    """Return the default model spec from environment variables, if configured."""
+    for name in DEFAULT_MODEL_ENV_VARS:
+        value = os.environ.get(name)
+        if value and value.strip():
+            return value.strip()
+    return None
 
 
 class ModelConfigError(Exception):
@@ -940,8 +957,9 @@ class ModelConfig:
             return fallback
 
         models_section = data.get("models", data)
+        env_default_model = resolve_default_model_env() if is_default else None
         config = cls(
-            default_model=models_section.get("default"),
+            default_model=env_default_model or models_section.get("default"),
             recent_model=models_section.get("recent"),
             providers=models_section.get("providers", {}),
             runtime=data.get("runtime", models_section.get("runtime", {})),
